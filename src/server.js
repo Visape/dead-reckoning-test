@@ -20,6 +20,20 @@ const ACCEL = 1 / 500
 class GameServer {
   constructor () {
     this.players = {}
+    this.coins = []
+  }
+
+  onCoinSpawn (socket) {
+    const coin = {
+      id: this.coins.length,
+      x: Math.random() * 500,
+      y: Math.random() * 500,
+      value: Math.random() * 50,
+      color: randomColor()
+    }
+    this.coins[this.coins.length] = coin
+
+    socket.emit('coin respawn', coin)
   }
 
   onPlayerConnected (socket) {
@@ -80,6 +94,7 @@ class GameServer {
 }
 
 io.on('connection', function (socket) {
+
   game.onPlayerConnected(socket)
 
   // let lastPongTimestamp
@@ -96,6 +111,11 @@ io.on('connection', function (socket) {
     game.onPlayerMoved(socket, inputs)
   })
 
+  game.onCoinSpawn(socket)
+  setInterval(function () {
+    game.onCoinSpawn(socket)
+  }, 10000)
+
   socket.on('disconnect', () => {
     game.onPlayerDisconnected(socket)
   })
@@ -109,6 +129,7 @@ setInterval(function () {
   past = now
   game.logic(delta)
 }, 20)
+
 
 http.listen(process.env.PORT || 3000, function () {
   console.log('listening on *:3000')

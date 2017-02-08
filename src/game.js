@@ -17,10 +17,15 @@ const ACCEL = 1 / 500
 class GameClient {
   constructor () {
     this.players = {}
+    this.coins = {}
   }
 
   onWorldInit (serverPlayers) {
     this.players = serverPlayers
+  }
+
+  onCoinRespawn (coin) {
+    this.coins[coin.id] = coin
   }
 
   onPlayerMoved (player) {
@@ -108,11 +113,19 @@ function gameRenderer (game) {
       ctx.strokeRect(x, y, 50, 50)
     }
   }
+  
+  for (let coinId in game.coins) {
+    var coinImage = new Image()
+    coinImage.src = 'images/moneda.png'
+
+    ctx.drawImage(coinImage, game.coins[coinId].x, game.coins[coinId].y, 40, 40);
+  }
 }
 
 let past = Date.now()
 function gameloop () {
   requestAnimationFrame(gameloop)
+
 
   const now = Date.now()
   const delta = now - past
@@ -139,6 +152,9 @@ socket.on('connect', function () {
     myPlayerId = myId
   })
   socket.on('playerMoved', game.onPlayerMoved.bind(game))
+  socket.on('coin respawn', function (coin) {
+    game.onCoinRespawn(coin)
+  })
   socket.on('playerDisconnected', game.onPlayerDisconnected.bind(game))
 
   socket.on('game:pong', (serverNow) => {
