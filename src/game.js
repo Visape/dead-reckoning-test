@@ -1,36 +1,65 @@
 console.log('im game!')
 const kbd = require('@dasilvacontin/keyboard')
 const randomColor = require('randomcolor')
+const deepEqual = require('deep-equal')
+
 document.addEventListener('keydown', function (event) {
-    event.preventDefault()
+    // event.preventDefault()
 })
 
 const socket = io()
-const myPlayer = { x: 100, y: 100, vx: 0, vy: 0, color: randomColor() }
+const myPlayer = {
+    x: 100,
+    y: 100,
+    vx: 0,
+    vy: 0,
+    inputs: {
+        LEFT_ARROW: false,
+        RIGHT_ARROW: false,
+        UP_ARROW: false,
+        DOWN_ARROW: false
+    },
+    color: randomColor()
+}
 let myPlayerId = null
 
 // hash playerId => playerData
 let players = {}
 
-function logic () {
-    if (kbd.isKeyDown(kbd.LEFT_ARROW)) {
-        myPlayer.vx--
+const ACCEL = 1 / 500
+
+function updateInputs () {
+    const { inputs } = myPlayer
+
+    for (let key in inputs) {
+        inputs[key] = kbd.isKeyDown(kbd[key])
+    }
+}
+
+function logic (delta) {
+    // JSON for two equal objects should be the same string
+    // const oldInputs = JSON.stringify(Object.assign({}, myPlayer.inputs))
+    const oldInputs = Object.assign({},  myPlayer.inputs)
+    updateInputs()
+
+    const vInc = ACCEL * delta
+    for (let playerId in players) {
+        const player = players[playerId]
+        const { inputs } = player
+        if (inputs.LEFT_ARROW) player.vx -= vInc
+        if (inputs.RIGHT_ARROW) player.vx += vInc
+        if (inputs.UP_ARROW) player.vy -= vInc
+        if (inputs.DOWN_ARROW) player.vy += vInc
+
+        player.x += player.vx * delta
+        player.y += player.vy * delta
+    }
+
+    myPlayer.timestamp = Date.now()
+
+    if (!deepEqual(myPlayer.inputs, oldInputs)) {
         socket.emit('move', myPlayer)
     }
-    if (kbd.isKeyDown(kbd.RIGHT_ARROW)) {
-        myPlayer.vx++
-        socket.emit('move', myPlayer)
-    }
-    if (kbd.isKeyDown(kbd.UP_ARROW)) {
-        myPlayer.vy--
-        socket.emit('move', myPlayer)
-    }
-    if (kbd.isKeyDown(kbd.DOWN_ARROW)) {
-        myPlayer.vy++
-        socket.emit('move', myPlayer)
-    }
-    myplayer.x += myplayer.vx
-    myplayer.y += myplayer.vy
 }
 
 const canvas = document.createElement('canvas')
@@ -49,20 +78,19 @@ function render () {
         ctx.fillStyle = color
         ctx.fillRect(x, y, 50, 50)
         if (playerId === myPlayerId) {
-            ctx.strokeRect(x, y, 50, 50);
+            ctx.strokeRect(x, y, 50, 50)
         }
     }
 }
 
-let lastFrame = Date.now()
+let past = Date.now()
 function gameloop () {
-    const now = Date.now()
-    const delta = now - lastFrame
-    lastFrame = now
-
     requestAnimationFrame(gameloop)
-    logic()
-    render(delta)
+    const now = Date.now()
+    const delta = now - past
+    past = now
+    logic(delta)
+    render()
 }
 
 socket.on('connect', function () {
@@ -72,6 +100,7 @@ socket.on('connect', function () {
         players = serverPlayers
         players[myId] = myPlayer
     })
+
     socket.on('playerMoved', function (player) {
         players[player.id] = player
     })
@@ -80,6 +109,5 @@ socket.on('connect', function () {
         delete players[playerId]
     })
 })
-
 
 requestAnimationFrame(gameloop)
