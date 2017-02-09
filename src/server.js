@@ -23,17 +23,19 @@ class GameServer {
     this.coins = []
   }
 
-  onCoinSpawn (socket) {
-    const coin = {
-      id: this.coins.length,
-      x: Math.random() * 500,
-      y: Math.random() * 500,
-      value: Math.random() * 50,
-      color: randomColor()
-    }
-    this.coins[this.coins.length] = coin
+  onCoinSpawn () {
+    if (this.coins.length < 10) {
+      const coin = {
+        id: this.coins.length,
+        x: Math.random() * 500,
+        y: Math.random() * 500,
+        value: Math.random() * 50,
+        color: randomColor()
+      }
+      this.coins[this.coins.length] = coin
 
-    socket.emit('coin respawn', coin)
+      io.sockets.emit('coin respawn', coin)
+    }
   }
 
   onPlayerConnected (socket) {
@@ -56,7 +58,7 @@ class GameServer {
     }
     this.players[socket.id] = player
 
-    socket.emit('world:init', this.players, socket.id)
+    socket.emit('world:init', this.players, socket.id, this.coins)
 
     // so that the new players appears on other people's screen
     this.onPlayerMoved(socket, inputs)
@@ -111,15 +113,15 @@ io.on('connection', function (socket) {
     game.onPlayerMoved(socket, inputs)
   })
 
-  game.onCoinSpawn(socket)
-  setInterval(function () {
-    game.onCoinSpawn(socket)
-  }, 10000)
 
   socket.on('disconnect', () => {
     game.onPlayerDisconnected(socket)
   })
 })
+
+setInterval(function () {
+    game.onCoinSpawn()
+  }, 10000)
 
 const game = new GameServer()
 let past = Date.now()

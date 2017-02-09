@@ -20,8 +20,9 @@ class GameClient {
     this.coins = {}
   }
 
-  onWorldInit (serverPlayers) {
+  onWorldInit (serverPlayers, serverCoins) {
     this.players = serverPlayers
+    this.coins = serverCoins
   }
 
   onCoinRespawn (coin) {
@@ -29,7 +30,7 @@ class GameClient {
   }
 
   onPlayerMoved (player) {
-    console.log(player)
+    //console.log(player)
     this.players[player.id] = player
 
     const delta = (Date.now() + clockDiff) - player.timestamp
@@ -111,6 +112,15 @@ function gameRenderer (game) {
     ctx.fillRect(x, y, 50, 50)
     if (playerId === myPlayerId) {
       ctx.strokeRect(x, y, 50, 50)
+      for (let coinId in game.coins) {
+        let deltax = (x-game.coins[coinId].x)
+        let deltay = (y-game.coins[coinId].y)
+        if ((-50 <= deltax) && (deltax <= 40) && (-50 <= deltay) && (deltay <= 40)) {
+
+          console.log("MONEDA TOCADA")
+          delete game.coins[coinId]
+        } 
+      }
     }
   }
   
@@ -147,8 +157,8 @@ function startPingHandshake () {
 setInterval(startPingHandshake, 250)
 
 socket.on('connect', function () {
-  socket.on('world:init', function (serverPlayers, myId) {
-    game.onWorldInit(serverPlayers)
+  socket.on('world:init', function (serverPlayers, myId, serverCoins) {
+    game.onWorldInit(serverPlayers, serverCoins)
     myPlayerId = myId
   })
   socket.on('playerMoved', game.onPlayerMoved.bind(game))
@@ -160,7 +170,7 @@ socket.on('connect', function () {
   socket.on('game:pong', (serverNow) => {
     ping = (Date.now() - lastPingTimestamp) / 2
     clockDiff = (serverNow + ping) - Date.now()
-    console.log({ ping, clockDiff })
+    //console.log({ ping, clockDiff })
   })
 })
 
