@@ -57,7 +57,8 @@ class GameClient {
     }
   }
 
-  onCoinPicked (coinId) {
+  onCoinPicked (coinId, playerId) {
+    this.players[playerId].score += this.coins[coinId].value
     delete this.coins[coinId]
   }
 
@@ -114,27 +115,25 @@ function gameRenderer (game) {
   ctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
 
   for (let playerId in game.players) {
-    const { color, x, y } = game.players[playerId]
+    const { color, x, y, score } = game.players[playerId]
     ctx.fillStyle = color
     ctx.fillRect(x, y, 50, 50)
     if (playerId === myPlayerId) {
       ctx.strokeRect(x, y, 50, 50)
-      for (let coinId in game.coins) {
-        let deltax = (x-game.coins[coinId].x)
-        let deltay = (y-game.coins[coinId].y)
-        if ((-50 <= deltax) && (deltax <= 40) && (-50 <= deltay) && (deltay <= 40)) {
-          //AVISAR AL SERVIDOR
-          socket.emit('coinpicked', coinId)
-        } 
-      }
     }
+    ctx.fillStyle = 'black'
+    ctx.font = "20px Arial"
+    ctx.textAlign = 'center'
+    ctx.fillText(score, x+25, y+25)
   }
   
   for (let coinId in game.coins) {
-    var coinImage = new Image()
-    coinImage.src = 'images/moneda.png'
+    if (game.coins[coinId] != null) {
+      var coinImage = new Image()
+      coinImage.src = 'images/moneda.png'
 
-    ctx.drawImage(coinImage, game.coins[coinId].x, game.coins[coinId].y, 40, 40);
+      ctx.drawImage(coinImage, game.coins[coinId].x, game.coins[coinId].y, 40, 40);
+    }
   }
 }
 
@@ -168,8 +167,8 @@ socket.on('connect', function () {
     myPlayerId = myId
   })
   socket.on('playerMoved', game.onPlayerMoved.bind(game))
-  socket.on('coinDeleted', function (coinId) {
-    game.onCoinPicked(coinId)
+  socket.on('coinPicked', function (coinId, playerId) {
+    game.onCoinPicked(coinId, playerId)
   })
   socket.on('coin respawn', function (coin) {
     game.onCoinRespawn(coin)

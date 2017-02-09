@@ -20,19 +20,34 @@ const ACCEL = 1 / 500
 class GameServer {
   constructor () {
     this.players = {}
-    this.coins = []
+    this.coins = {}
+    this.lastCoin = 0
+    this.coinCount = 0
+
+    for (let i = 0; i < 5; ++i) {
+      const coin = {
+        id: this.lastCoin,
+        x: Math.random() * 500,
+        y: Math.random() * 500,
+        value: Math.floor(Math.random() * 5) + 1
+      }
+      this.coins[this.lastCoin] = coin
+      ++this.lastCoin
+      ++this.coinCount
+    }
   }
 
   onCoinSpawn () {
-    if (this.coins.length < 10) {
+    if (this.coinCount < 10) {
       const coin = {
-        id: this.coins.length,
+        id: this.lastCoin,
         x: Math.random() * 500,
         y: Math.random() * 500,
-        value: Math.random() * 50,
-        color: randomColor()
+        value: Math.floor(Math.random() * 5) + 1
       }
-      this.coins[this.coins.length] = coin
+      this.coins[this.lastCoin] = coin
+      ++this.lastCoin
+      ++this.coinCount
 
       io.sockets.emit('coin respawn', coin)
     }
@@ -54,6 +69,7 @@ class GameServer {
       vy: 0,
       color: randomColor(),
       id: socket.id,
+      score: 0,
       inputs
     }
     this.players[socket.id] = player
@@ -73,9 +89,11 @@ class GameServer {
     io.sockets.emit('playerMoved', player)
   }
 
-  onCoinPicked (coinId) {
+  onCoinPicked (coinId, playerId) {
+    this.players[playerId].score += this.coins[coinId].value
+    --this.coinCount
     delete this.coins[coinId]
-    io.sockets.emit('coinDeleted', coinId)
+    io.sockets.emit('coinPicked', coinId, playerId)
   }
 
   onPlayerDisconnected (socket) {
@@ -96,6 +114,14 @@ class GameServer {
 
       player.x += player.vx * delta
       player.y += player.vy * delta
+
+      for (let coinId in this.coins) {
+        let deltax = (this.players[playerId].x-this.coins[coinId].x)
+        let deltay = (this.players[playerId].y-this.coins[coinId].y)
+        if ((-50 <= deltax) && (deltax <= 40) && (-50 <= deltay) && (deltay <= 40)) {
+          this.onCoinPicked(coinId, playerId)
+        }
+      }
     }
   }
 }
@@ -116,10 +142,6 @@ io.on('connection', function (socket) {
 
   socket.on('move', (inputs) => {
     game.onPlayerMoved(socket, inputs)
-  })
-
-  socket.on('coinpicked', function (coinId) {
-    game.onCoinPicked(coinId)
   })
 
   socket.on('disconnect', () => {
