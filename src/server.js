@@ -73,6 +73,10 @@ class GameServer {
     io.sockets.emit('playerMoved', player)
   }
 
+  onCoinPicked (coinId) {
+    delete this.coins[coinId]
+  }
+
   onPlayerDisconnected (socket) {
     console.log(`${socket.id} disconnected`)
     delete this.players[socket.id]
@@ -113,6 +117,9 @@ io.on('connection', function (socket) {
     game.onPlayerMoved(socket, inputs)
   })
 
+  socket.on('coin:picked', function (coinId) {
+    game.onCoinPicked(coinId)
+  })
 
   socket.on('disconnect', () => {
     game.onPlayerDisconnected(socket)

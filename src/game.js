@@ -119,6 +119,8 @@ function gameRenderer (game) {
 
           console.log("MONEDA TOCADA")
           delete game.coins[coinId]
+          //AVISAR AL SERVIDOR
+          socket.emit('coin:picked', coinId)
         } 
       }
     }
