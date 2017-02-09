@@ -117,7 +117,7 @@ io.on('connection', function (socket) {
     game.onPlayerMoved(socket, inputs)
   })
 
-  socket.on('coin:picked', function (coinId) {
+  socket.on('coinpicked', function (coinId) {
     game.onCoinPicked(coinId)
   })
 

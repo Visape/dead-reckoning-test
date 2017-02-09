@@ -57,6 +57,10 @@ class GameClient {
     }
   }
 
+  onCoinPicked (coinId) {
+    delete this.coins[coinId]
+  }
+
   onPlayerDisconnected (playerId) {
     delete this.players[playerId]
   }
@@ -120,7 +124,7 @@ function gameRenderer (game) {
           console.log("MONEDA TOCADA")
           delete game.coins[coinId]
           //AVISAR AL SERVIDOR
-          socket.emit('coin:picked', coinId)
+          socket.broadcast.emit('coinpicked', coinId)
         } 
       }
     }
@@ -164,6 +168,9 @@ socket.on('connect', function () {
     myPlayerId = myId
   })
   socket.on('playerMoved', game.onPlayerMoved.bind(game))
+  socket.on('coinpicked', function (coinId) {
+    game.onCoinPicked(coinId)
+  })
   socket.on('coin respawn', function (coin) {
     game.onCoinRespawn(coin)
   })
