@@ -75,6 +75,7 @@ class GameServer {
 
   onCoinPicked (coinId) {
     delete this.coins[coinId]
+    io.sockets.emit('coinDeleted', coinId)
   }
 
   onPlayerDisconnected (socket) {

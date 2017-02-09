@@ -94,8 +94,11 @@ function updateInputs () {
 
     // update our local player' inputs so that we see instant change
     // (inputs get taken into account in logic simulation)
-    const myPlayer = game.players[myPlayerId]
-    myPlayer.inputs = Object.assign({}, myInputs)
+    const frozenInputs = Object.assign({}, myInputs)
+    setTimeout(function () {
+      const myPlayer = game.players[myPlayerId]
+      myPlayer.inputs = frozenInputs
+    }, ping)
   }
 }
 
@@ -120,11 +123,8 @@ function gameRenderer (game) {
         let deltax = (x-game.coins[coinId].x)
         let deltay = (y-game.coins[coinId].y)
         if ((-50 <= deltax) && (deltax <= 40) && (-50 <= deltay) && (deltay <= 40)) {
-
-          console.log("MONEDA TOCADA")
-          delete game.coins[coinId]
           //AVISAR AL SERVIDOR
-          socket.broadcast.emit('coinpicked', coinId)
+          socket.emit('coinpicked', coinId)
         } 
       }
     }
@@ -168,7 +168,7 @@ socket.on('connect', function () {
     myPlayerId = myId
   })
   socket.on('playerMoved', game.onPlayerMoved.bind(game))
-  socket.on('coinpicked', function (coinId) {
+  socket.on('coinDeleted', function (coinId) {
     game.onCoinPicked(coinId)
   })
   socket.on('coin respawn', function (coin) {
